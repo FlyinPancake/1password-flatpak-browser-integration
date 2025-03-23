@@ -1,18 +1,17 @@
 # 1Password Flatpak Browser Integration
 
-This script will automatically add support for 1Password to integrate with Flatpak web browsers on Linux. I haven't tested every browser, so add a comment if it doesn't work for your browser.
+This script will automatically add support for 1Password to integrate with Flatpak web browsers on Linux. We have not tested every browser, so make an issue on this repo if it doesn't work for your browser.
 
 Note: The 1Password app itself needs to be installed as a native package.
 
 To use this script, follow these steps:
-1. Download the script (right-click on "Raw" and click "Save Link As").
-2. Open your terminal in the directory that you downloaded the script to. For example, if it's in your Downloads folder, run `cd Downloads` after opening your terminal.
-3. Mark the script as executable using the command `chmod +x 1password-flatpak-browser-integration.sh`.
-4. Run the script using the command `./1password-flatpak-browser-integration.sh`.
-5. When it asks, enter the Flatpak application ID of your browser, then press Enter. If it's not listed, the easiest way to find it is to run `flatpak list --app --columns=application | grep -i <browser name>`, replacing `<browser name>` with the name of your browser.
-6. Restart both 1Password and your browser.
+1. Clone this repository, such as by running `git clone https://github.com/FlyinPancake/1password-flatpak-browser-integration` in your terminal.
+2. Enter the directory of the repository using `cd 1password-flatpak-browser-integration`.
+3. Run the script using the command `./1password-flatpak-browser-integration.sh`.
+4. When it asks, enter the Flatpak application ID of your browser, then press Enter. If it's not listed, the easiest way to find it is to run `flatpak list --app --columns=application | grep -i <browser name>`, replacing `<browser name>` with the name of your browser.
+5. Restart both 1Password and your browser.
 
-This is generally made following [this guide](https://www.1password.community/discussions/1password/flatpak-browser-and-native-desktop-app/108438), but I'll add some further explanation as to how it works here.
+This is generally made following [this guide](https://www.1password.community/discussions/1password/flatpak-browser-and-native-desktop-app/108438). Some information on how it works is below.
 
 # Native Messaging Hosts
 
@@ -60,7 +59,7 @@ This normally works well. The problem is that, since Flatpaks are sandboxed, the
 
 # Bypassing the Flatpak Sandbox
 
-First, we need to allow the browser to access the JSON file. The easiest way is to just put the file inside the sandbox rather than allowing the browsers to bypass the sandbox, so that's what this script does in most cases (see Complications for when we don't). This just involves putting a JSON file in `~/.var/app/<browser ID>/config/<browser name>/NativeMessagingHosts` on Chromium and `~/.var/app/<browser ID>/.<browser name>/native-messaging-hosts` on Firefox (though every fork does things differently; see Complications).
+First, we need to allow the browser to access the JSON file. The easiest way is to just put the file inside the sandbox rather than allowing the browsers to bypass the sandbox, so that's what this script does in most cases (see [Complications](#Complications) for when we don't). This just involves putting a JSON file in `~/.var/app/<browser ID>/config/<browser name>/NativeMessagingHosts` on Chromium and `~/.var/app/<browser ID>/.<browser name>/native-messaging-hosts` on Firefox (though every fork does things differently; see [Complications](Complications)).
 
 Next, we need to allow the browser to run the host command. This has three parts:
 1. To allow the app to run commands, we need to grant it permission to talk on the `org.freedesktop.Flatpak` bus using either Flatseal or this command: `flatpak override --user --talk-name=org.freedesktop.Flatpak <browser ID>`
@@ -82,12 +81,12 @@ The first two places are somewhat annoying to find but not too difficult, but th
 
 Another difficulty is finding the directory where the native messaging host JSON should go. Chromium-based browsers put it in `~/.var/app/<browser ID>/config/<browser name>/NativeMessagingHosts` or `~/.var/app/<browser ID>/config/<company name>/<browser name>/NativeMessagingHosts`. Luckily, the NativeMessagingHosts directory is already created, so we just have to run a `find` command to locate it. Firefox-based browsers don't create their `native-messaging-hosts` folder automatically, so we need to locate the `profiles.ini` file and derive the location from there.
 
-Then, on browsers like Floorp and Zen, which require the files be put in `~/.mozilla`, this custom JSON file would interere with the native version of Firefox (or Floorp or Zen) because the browser would be attempting to run `flatpak-spawn --host` without being in a Flatpak, which fails. To get around this, we need a slightly more complex script that runs `flatpak-spawn --host` if it's being run from a Flatpak and just runs the command normally otherwise. However, that normal command is being run by `bash`, not by the browser, which is a security risk, so I'm running it through `exec` instead.
+Then, on browsers like Floorp and Zen, which require the files be put in `~/.mozilla`, this custom JSON file would interere with the native version of Firefox (or Floorp or Zen) because the browser would be attempting to run `flatpak-spawn --host` without being in a Flatpak, which fails. To get around this, we need a slightly more complex script that runs `flatpak-spawn --host` if it's being run from a Flatpak and just runs the command normally otherwise. However, that normal command is being run by `bash`, not by the browser, which is a security risk, so this command runs it through `exec` instead. `exec` replaces the `bash` shell with `1Password-BrowserSupport` instead of running it as a child, so now the parent is the browser again.
 
 <details>
     <summary>Curious about why it's a security risk?</summary>
 
-1Password only lets certain apps integrate with it, as described below. If this were to run directly through Bash, that would mean that we'd need to allow 1Password to integrate with everything run by Bash, which is a lot. Basically everything running on your system would then have access to your 1Password vault. To get around this, we run `exec /opt/1Password/1Password-BrowserSupport "$@"` instead of just `/opt/1Password/1Password-BrowserSupport "$@"`. The `exec` command basically replaces the Bash shell with whatever command you ran, which means that `1Password-BrowserSupport`'s parent process is now your browser, not Bash.
+1Password only lets certain apps integrate with it, as described [below](#telling-1password-that-it-can-connect). If this were to run directly through Bash, that would mean that we'd need to allow 1Password to integrate with everything run by Bash, which is a lot. Basically everything running on your system would then have access to your 1Password vault. To get around this, we run `exec /opt/1Password/1Password-BrowserSupport "$@"` instead of just `/opt/1Password/1Password-BrowserSupport "$@"`. The `exec` command basically replaces the Bash shell with whatever command you ran, which means that `1Password-BrowserSupport`'s parent process is now your browser, not Bash.
 
 </details>
 
