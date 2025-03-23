@@ -59,7 +59,7 @@ This normally works well. The problem is that, since Flatpaks are sandboxed, the
 
 # Bypassing the Flatpak Sandbox
 
-First, we need to allow the browser to access the JSON file. The easiest way is to just put the file inside the sandbox rather than allowing the browsers to bypass the sandbox, so that's what this script does in most cases (see [Complications](#Complications) for when we don't). This just involves putting a JSON file in `~/.var/app/<browser ID>/config/<browser name>/NativeMessagingHosts` on Chromium and `~/.var/app/<browser ID>/.<browser name>/native-messaging-hosts` on Firefox (though every fork does things differently; see [Complications](Complications)).
+First, we need to allow the browser to access the JSON file. The easiest way is to just put the file inside the sandbox rather than allowing the browsers to bypass the sandbox, so that's what this script does in most cases (see [Complications](#Complications) for when we don't). This just involves putting a JSON file in `~/.var/app/<browser ID>/config/<browser name>/NativeMessagingHosts` on Chromium and `~/.var/app/<browser ID>/.<browser name>/native-messaging-hosts` on Firefox (though every fork does things differently; see [Complications](#Complications)).
 
 Next, we need to allow the browser to run the host command. This has three parts:
 1. To allow the app to run commands, we need to grant it permission to talk on the `org.freedesktop.Flatpak` bus using either Flatseal or this command: `flatpak override --user --talk-name=org.freedesktop.Flatpak <browser ID>`
