@@ -153,35 +153,71 @@ add_native_messaging_host() {
 EOF
 }
 
-PUT_FILES_IN_MOZILLA_DIR=false
+is_native_messaging_host_correct() {
+    local WRAPPER_PATH="$1"
+    local ALLOWED_EXTENSIONS="$2"
+    local NATIVE_MESSAGING_HOSTS_DIR="$3"
+    local SHOULD_BE_IMMUTABLE="$4"
+
+    FILE_CONTENTS=$(cat "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json")
+    CORRECT_CONTENTS=$(cat <<EOF
+{
+    "name": "com.1password.1password",
+    "description": "1Password BrowserSupport",
+    "path": "$WRAPPER_PATH",
+    "type": "stdio",
+    $ALLOWED_EXTENSIONS
+}
+EOF
+)
+
+    # check if the files exist
+    if [[ ! -f "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" ]] || [[ ! -f "$WRAPPER_PATH" ]]; then
+        return 1
+    # if it is supposed to be immutable, check if it is immutable
+    elif [[ -n "$SHOULD_BE_IMMUTABLE" ]] && [[ "$SHOULD_BE_IMMUTABLE" = "true" ]]; then
+        # check if the file is immutable
+        if [[ "$(lsattr "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" | cut -c 5)" != "i" ]]; then
+            return 1
+        fi
+    # check if it has the correct contents
+    elif [[ "$FILE_CONTENTS" != "$CORRECT_CONTENTS" ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
 WRAPPER_PATH="$HOME/.var/app/$FLATPAK_ID/data/bin/1password-wrapper.sh"
 if [[ "$BROWSER_TYPE" = "chromium" ]]; then
     add_native_messaging_host "$WRAPPER_PATH" "$ALLOWED_EXTENSIONS_CHROMIUM" "$NATIVE_MESSAGING_HOSTS_DIR"
 elif [[ "$BROWSER_TYPE" = "firefox" ]]; then
     add_native_messaging_host "$WRAPPER_PATH" "$ALLOWED_EXTENSIONS_FIREFOX" "$NATIVE_MESSAGING_HOSTS_DIR"
     BROWSERS_NOT_USING_MOZILLA=("org.mozilla.firefox" "io.gitlab.librewolf-community" "net.waterfox.waterfox")
+    GLOBAL_WRAPPER_PATH="$HOME/.mozilla/native-messaging-hosts/1password-wrapper.sh"
+    GLOBAL_NATIVE_MESSAGING_HOSTS_DIR="$HOME/.mozilla/native-messaging-hosts"
     if [[ " ${BROWSERS_NOT_USING_MOZILLA[*]} " =~ [[:space:]]${FLATPAK_ID}[[:space:]] ]]; then
         echo -e "${INFO}Skipping adding to $HOME/.mozilla/native-messaging-hosts/com.1password.1password.json${NC}"
-    else
+    # if the file doesn't exist or the contents are wrong, then ask if it should be created
+    elif ! is_native_messaging_host_correct "$GLOBAL_WRAPPER_PATH" "$ALLOWED_EXTENSIONS_FIREFOX" "$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR" "true"; then
         echo "Some browsers, like Floorp and Zen, need the file in ~/.mozilla instead of in their own sandbox. This requires replacing the existing file $HOME/.mozilla/native-messaging-hosts/com.1password.1password.json with a custom one. Then, to prevent 1Password overwriting it, the file needs to be marked as read-only using chattr +i on it."
         echo -n "Do you want to continue? This will require sudo privileges. (Y/n) "
         read -r CONTINUE
         if [[ "$CONTINUE" = "N" ]] || [[ "$CONTINUE" = "n" ]]; then
             echo -e "${INFO}Skipping${NC}"
         else
-            PUT_FILES_IN_MOZILLA_DIR=true
-            cp "$HOME/.var/app/$FLATPAK_ID/data/bin/1password-wrapper.sh" "$HOME/.mozilla/native-messaging-hosts/1password-wrapper.sh"
-            flatpak override --user --filesystem="$HOME/.mozilla/native-messaging-hosts" "$FLATPAK_ID"
+            cp "$HOME/.var/app/$FLATPAK_ID/data/bin/1password-wrapper.sh" "$GLOBAL_WRAPPER_PATH"
+            flatpak override --user --filesystem="$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR" "$FLATPAK_ID"
 
-            WRAPPER_PATH="$HOME/.mozilla/native-messaging-hosts/1password-wrapper.sh" # For browsers that need the file in ~/.mozilla, like Zen and Floorp
-            NATIVE_MESSAGING_HOSTS_DIR="$HOME/.mozilla/native-messaging-hosts"
-            sudo chattr -i "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" # Remove read-only flag if it exists
-            add_native_messaging_host "$WRAPPER_PATH" "$ALLOWED_EXTENSIONS_FIREFOX" "$NATIVE_MESSAGING_HOSTS_DIR"
+            sudo chattr -i "$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" # Remove read-only flag if it exists
+            add_native_messaging_host "$GLOBAL_WRAPPER_PATH" "$ALLOWED_EXTENSIONS_FIREFOX" "$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR"
 
-            echo -e "${INFO}Marking $HOME/.mozilla/native-messaging-hosts/com.1password.1password.json as read-only using chattr +i. To undo, run this command:${NC}"
-            echo -e "${INFO}sudo chattr -i $HOME/.mozilla/native-messaging-hosts/com.1password.1password.json${NC}"
-            sudo chattr +i "$HOME/.mozilla/native-messaging-hosts/com.1password.1password.json" # Prevent 1Password from overwriting the file
+            echo -e "${INFO}Marking $GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json as read-only using chattr +i. To undo, run this command:${NC}"
+            echo -e "${INFO}sudo chattr -i $GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json${NC}"
+            sudo chattr +i "$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" # Prevent 1Password from overwriting the file
         fi
+    else
+        echo -e "${INFO}Already added to $GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json${NC}"
     fi
 fi
 
@@ -195,7 +231,7 @@ if [[ ! -d /etc/1password ]]; then
     sudo mkdir /etc/1password
 fi
 if grep -q 'flatpak-session-helper' /etc/1password/custom_allowed_browsers; then
-    echo -e "${WARN}Already added to allowed browsers${NC}"
+    echo -e "${INFO}Already added to allowed browsers${NC}"
 else
     echo -e "${INFO}Adding to allowed browsers${NC}"
     echo -e 'flatpak-session-helper' | sudo tee -a /etc/1password/custom_allowed_browsers >/dev/null
