@@ -52,6 +52,21 @@ list_flatpak_browsers() {
     done
 }
 
+get_native_messaging_hosts_json() {
+    local WRAPPER_PATH="$1"
+    local ALLOWED_EXTENSIONS="$2"
+
+    cat <<EOF
+{
+    "name": "com.1password.1password",
+    "description": "1Password BrowserSupport",
+    "path": "$WRAPPER_PATH",
+    "type": "stdio",
+    $ALLOWED_EXTENSIONS
+}
+EOF
+}
+
 # Getting what browser to install for
 echo -e "${INFO}Detected Chromium-based browsers (incomplete list):${NC}"
 CHROMIUM_BROWSER_ID_LIST=("com.google.Chrome" "com.brave.Browser" "com.vivaldi.Vivaldi" "com.opera.Opera" "com.microsoft.Edge" "ru.yandex.Browser" "org.chromium.Chromium" "io.github.ungoogled_software.ungoogled_chromium")
@@ -142,15 +157,7 @@ add_native_messaging_host() {
         mkdir -p "$NATIVE_MESSAGING_HOSTS_DIR"
     fi
 
-    cat <<EOF >"$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json"
-{
-    "name": "com.1password.1password",
-    "description": "1Password BrowserSupport",
-    "path": "$WRAPPER_PATH",
-    "type": "stdio",
-    $ALLOWED_EXTENSIONS
-}
-EOF
+    get_native_messaging_hosts_json "$WRAPPER_PATH" "$ALLOWED_EXTENSIONS" > "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json"
 }
 
 is_native_messaging_host_correct() {
@@ -160,16 +167,7 @@ is_native_messaging_host_correct() {
     local SHOULD_BE_IMMUTABLE="$4"
 
     FILE_CONTENTS=$(cat "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json")
-    CORRECT_CONTENTS=$(cat <<EOF
-{
-    "name": "com.1password.1password",
-    "description": "1Password BrowserSupport",
-    "path": "$WRAPPER_PATH",
-    "type": "stdio",
-    $ALLOWED_EXTENSIONS
-}
-EOF
-)
+    CORRECT_CONTENTS=$(get_native_messaging_hosts_json "$WRAPPER_PATH" "$ALLOWED_EXTENSIONS")
 
     # check if the files exist
     if [[ ! -f "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" ]] || [[ ! -f "$WRAPPER_PATH" ]]; then
