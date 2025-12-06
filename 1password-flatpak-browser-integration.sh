@@ -13,7 +13,6 @@ echo -e "${WARN}Note: It will make it possible for any Flatpak application to in
 echo
 
 # Warn if running as root/sudo because this script uses $HOME for user-scoped paths
-# Warn if running as root/sudo because this script uses $HOME for user-scoped paths
 if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
     echo -e "${WARN}___________________________________________________________________________________________${NC}"
     if [[ -n "${SUDO_USER-}" ]]; then
