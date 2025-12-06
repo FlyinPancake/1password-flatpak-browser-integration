@@ -16,9 +16,9 @@ echo
 if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
     echo -e "${WARN}___________________________________________________________________________________________${NC}"
     if [[ -n "${SUDO_USER-}" ]]; then
-        echo -e "${WARN}${BOLD}WARNING${NC}${WARN}: You are running this script as root. Flatpak installations are typically installed under non-root users. \nConsider running this script as ${NC}${BOLD}${SUDO_USER}${NC}${WARN} if you're unsure which user your browser is installed as.${NC}"
+        echo -e "${WARN}${BOLD}WARNING${NC}${WARN}: You are running this script as root. Flatpak installations are typically installed under non-root users. \nConsider running this script as ${NC}${BOLD}${SUDO_USER}${NC}${WARN} if you're unsure which user your browser is installed under.${NC}"
     else
-        echo -e "${WARN}${BOLD}WARNING${NC}${WARN}: You are running this script as root. Flatpak installations are typically installed under non-root users. \nConsider running this script as your normal user if you're unsure which user your browser is installed as.${NC}"
+        echo -e "${WARN}${BOLD}WARNING${NC}${WARN}: You are running this script as root. Flatpak installations are typically installed under non-root users. \nConsider running this script as your normal user if you're unsure which user your browser is installed under.${NC}"
     fi
     echo -e "${WARN}‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾${NC}"
     echo
