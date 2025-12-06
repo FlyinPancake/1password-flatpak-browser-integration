@@ -5,11 +5,26 @@ INFO='\033[0;36m'    # Cyan for general information
 SUCCESS='\033[0;32m' # Green for success messages
 WARN='\033[0;33m'    # Yellow for warnings
 ERROR='\033[0;31m'   # Red for errors
+BOLD='\033[1m'       # Bold text
 NC='\033[0m'         # No Color
 
 echo "This script will help you set up 1Password in a Flatpak browser."
 echo -e "${WARN}Note: It will make it possible for any Flatpak application to integrate, not just some. Consider if you find this worth the risk.${NC}"
 echo
+
+# Warn if running as root/sudo because this script uses $HOME for user-scoped paths
+# Warn if running as root/sudo because this script uses $HOME for user-scoped paths
+if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    echo -e "${WARN}___________________________________________________________________________________________${NC}"
+    if [[ -n "${SUDO_USER-}" ]]; then
+        echo -e "${WARN}${BOLD}WARNING${NC}${WARN}: You are running this script as root. Flatpak installations are typically installed under non-root users. \nConsider running this script as ${NC}${BOLD}${SUDO_USER}${NC}${WARN} if you're unsure which user your browser is installed as.${NC}"
+    else
+        echo -e "${WARN}${BOLD}WARNING${NC}${WARN}: You are running this script as root. Flatpak installations are typically installed under non-root users. \nConsider running this script as your normal user if you're unsure which user your browser is installed as.${NC}"
+    fi
+    echo -e "${WARN}‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾${NC}"
+    echo
+fi
+
 
 PACKAGE_LIST=$(flatpak list --app --columns=application)
 
