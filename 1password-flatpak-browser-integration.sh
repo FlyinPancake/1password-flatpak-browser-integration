@@ -180,9 +180,6 @@ is_native_messaging_host_correct() {
     local NATIVE_MESSAGING_HOSTS_DIR="$3"
     local SHOULD_BE_IMMUTABLE="$4"
 
-    FILE_CONTENTS=$(cat "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json")
-    CORRECT_CONTENTS=$(get_native_messaging_hosts_json "$WRAPPER_PATH" "$ALLOWED_EXTENSIONS")
-
     # check if the files exist
     if [[ ! -f "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" ]] || [[ ! -f "$WRAPPER_PATH" ]]; then
         return 1
@@ -192,8 +189,12 @@ is_native_messaging_host_correct() {
         if [[ "$(lsattr "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" | cut -c 5)" != "i" ]]; then
             return 1
         fi
+    fi
+
     # check if it has the correct contents
-    elif [[ "$FILE_CONTENTS" != "$CORRECT_CONTENTS" ]]; then
+    FILE_CONTENTS=$(cat "$NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json")
+    CORRECT_CONTENTS=$(get_native_messaging_hosts_json "$WRAPPER_PATH" "$ALLOWED_EXTENSIONS")
+    if [[ "$FILE_CONTENTS" != "$CORRECT_CONTENTS" ]]; then
         return 1
     fi
 
@@ -218,10 +219,10 @@ elif [[ "$BROWSER_TYPE" = "firefox" ]]; then
         if [[ "$CONTINUE" = "N" ]] || [[ "$CONTINUE" = "n" ]]; then
             echo -e "${INFO}Skipping${NC}"
         else
-            cp "$HOME/.var/app/$FLATPAK_ID/data/bin/1password-wrapper.sh" "$GLOBAL_WRAPPER_PATH"
+            cp "$WRAPPER_PATH" "$GLOBAL_WRAPPER_PATH"
             flatpak override --user --filesystem="$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR" "$FLATPAK_ID"
 
-            sudo chattr -i "$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" # Remove read-only flag if it exists
+            sudo chattr -i "$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" || : # Remove read-only flag if it exists
             add_native_messaging_host "$GLOBAL_WRAPPER_PATH" "$ALLOWED_EXTENSIONS_FIREFOX" "$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR"
 
             echo -e "${INFO}Marking $GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json as read-only using chattr +i. To undo, run this command:${NC}"
