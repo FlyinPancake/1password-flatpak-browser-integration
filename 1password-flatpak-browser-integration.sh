@@ -81,18 +81,17 @@ get_native_messaging_hosts_json() {
 EOF
 }
 
+OP_BROWSER_SUPPORT_PATH_DEFAULT="/opt/1Password/1Password-BrowserSupport"
+
 get_1password_browser_support_path() {
-    # Check common locations for 1Password-BrowserSupport
-    local POSSIBLE_PATHS=(
-        "/opt/1Password/1Password-BrowserSupport"
-        "/home/linuxbrew/.linuxbrew/bin/1Password-BrowserSupport"
-    )
-    for PATH in "${POSSIBLE_PATHS[@]}"; do
-        if [[ -f "$PATH" ]]; then
-            echo "$PATH"
-            return 0
-        fi
-    done
+    op_browser_support_path=$(command -v 1Password-BrowserSupport)
+
+    if [[ -z "$op_browser_support_path" ]]; then
+        echo -e "${WARN}WARN: Could not find 1Password-BrowserSupport executable in PATH${NC}"
+        echo -e "${WARN}WARN: Falling back to default path: ${OP_BROWSER_SUPPORT_PATH_DEFAULT}${NC}"
+        op_browser_support_path="$OP_BROWSER_SUPPORT_PATH_DEFAULT"
+    fi
+    echo "$op_browser_support_path"
 }
 
 # Getting what browser to install for
