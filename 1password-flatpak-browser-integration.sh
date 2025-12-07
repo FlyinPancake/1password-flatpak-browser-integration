@@ -87,8 +87,8 @@ get_1password_browser_support_path() {
     op_browser_support_path=$(command -v 1Password-BrowserSupport)
 
     if [[ -z "$op_browser_support_path" ]]; then
-        echo -e "${WARN}WARN: Could not find 1Password-BrowserSupport executable in PATH${NC}"
-        echo -e "${WARN}WARN: Falling back to default path: ${OP_BROWSER_SUPPORT_PATH_DEFAULT}${NC}"
+        echo -e "${INFO}INFO: Could not find 1Password-BrowserSupport executable in PATH (this is fine for the official packages)${NC}" >&2
+        echo -e "${INFO}INFO: Falling back to default path: ${OP_BROWSER_SUPPORT_PATH_DEFAULT}${NC}" >&2
         op_browser_support_path="$OP_BROWSER_SUPPORT_PATH_DEFAULT"
     fi
     echo "$op_browser_support_path"
