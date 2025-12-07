@@ -81,6 +81,20 @@ get_native_messaging_hosts_json() {
 EOF
 }
 
+get_1password_browser_support_path() {
+    # Check common locations for 1Password-BrowserSupport
+    local POSSIBLE_PATHS=(
+        "/opt/1Password/1Password-BrowserSupport"
+        "/home/linuxbrew/.linuxbrew/bin/1Password-BrowserSupport"
+    )
+    for PATH in "${POSSIBLE_PATHS[@]}"; do
+        if [[ -f "$PATH" ]]; then
+            echo "$PATH"
+            return 0
+        fi
+    done
+}
+
 # Getting what browser to install for
 echo -e "${INFO}Detected Chromium-based browsers (incomplete list):${NC}"
 CHROMIUM_BROWSER_ID_LIST=("com.google.Chrome" "com.brave.Browser" "com.vivaldi.Vivaldi" "com.opera.Opera" "com.microsoft.Edge" "ru.yandex.Browser" "org.chromium.Chromium" "io.github.ungoogled_software.ungoogled_chromium")
@@ -119,14 +133,15 @@ echo -e "${INFO}Giving your browser permission to run programs outside the sandb
 flatpak override --user --talk-name=org.freedesktop.Flatpak "$FLATPAK_ID"
 
 # Creating a wrapper script for 1Password in the browser's directory
+OP_BROWSER_SUPPORT_PATH="$(get_1password_browser_support_path)"
 echo -e "${INFO}Creating a wrapper script for 1Password${NC}"
 mkdir -p "$HOME/.var/app/$FLATPAK_ID/data/bin"
 cat <<EOF >"$HOME/.var/app/$FLATPAK_ID/data/bin/1password-wrapper.sh"
 #!/bin/bash
 if [ "\${container-}" = flatpak ]; then
-    flatpak-spawn --host /opt/1Password/1Password-BrowserSupport "\$@"
+    flatpak-spawn --host $OP_BROWSER_SUPPORT_PATH "\$@"
 else
-    exec /opt/1Password/1Password-BrowserSupport "\$@"
+    exec $OP_BROWSER_SUPPORT_PATH "\$@"
 fi
 EOF
 chmod +x "$HOME/.var/app/$FLATPAK_ID/data/bin/1password-wrapper.sh"
