@@ -151,7 +151,18 @@ elif [[ "$BROWSER_TYPE" = "firefox" ]]; then
                 NATIVE_MESSAGING_HOSTS_DIR="$dir"/native-messaging-hosts
                 break
             fi
+
+            # Check one more level for XDG-compliant paths like config/mozilla/firefox
+            for subsubdir in "$subdir"/*; do
+                if is_firefox_dir "$subsubdir"; then
+                    # e.g., config/mozilla/firefox/profiles.ini -> config/mozilla/native-messaging-hosts
+                    NATIVE_MESSAGING_HOSTS_DIR="$subdir"/native-messaging-hosts
+                    break
+                fi
+            done
+            [[ -v NATIVE_MESSAGING_HOSTS_DIR ]] && break
         done
+        [[ -v NATIVE_MESSAGING_HOSTS_DIR ]] && break
     done
 fi
 
