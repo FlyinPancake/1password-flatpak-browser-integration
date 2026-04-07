@@ -46,7 +46,7 @@ is_firefox_dir() {
     # Skip if not a directory or if it's . or .. or .cache
     if [[ ! -d "$dir" ]] || [[ "$(basename "$dir")" = "." ]] || [[ "$(basename "$dir")" = ".." ]] || [[ "$(basename "$dir")" = "cache" ]] || [[ "$(basename "$dir")" = ".cache" ]]; then
         return 1
-    elif [[ -f "$dir/profiles.ini" ]]; then
+    elif [[ -f "$dir/profiles.ini" ]] || [[ -d "$dir/native-messaging-hosts" ]]; then # should catch the .mozilla folder when subdirs are checked
         return 0
     else
         return 1
@@ -153,6 +153,12 @@ elif [[ "$BROWSER_TYPE" = "firefox" ]]; then
             fi
         done
     done
+
+    # If it wasn't found, we might need to create .mozilla/native-messaging-hosts because Firefox now places profiles in XDG_CONFIG_HOME instead of .mozilla/firefox
+    if [[ -z "$NATIVE_MESSAGING_HOSTS_DIR" ]]; then
+        NATIVE_MESSAGING_HOSTS_DIR="$HOME/.var/app/$FLATPAK_ID/.mozilla/native-messaging-hosts"
+        mkdir -p "$NATIVE_MESSAGING_HOSTS_DIR"
+    fi
 fi
 
 if [[ ! -v NATIVE_MESSAGING_HOSTS_DIR ]] || [[ -z "$NATIVE_MESSAGING_HOSTS_DIR" ]]; then
