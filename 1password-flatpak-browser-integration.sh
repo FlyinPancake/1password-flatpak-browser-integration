@@ -247,7 +247,7 @@ if grep -q 'flatpak-session-helper' /etc/1password/custom_allowed_browsers; then
     echo -e "${INFO}Already added to allowed browsers${NC}"
 else
     echo -e "${INFO}Adding to allowed browsers${NC}"
-    echo -e 'flatpak-session-helper' | sudo tee -a /etc/1password/custom_allowed_browsers >/dev/null
+    printf '\nflatpak-session-helper\n' | sudo tee -a /etc/1password/custom_allowed_browsers >/dev/null
 fi
 
 # Done
