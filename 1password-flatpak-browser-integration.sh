@@ -8,6 +8,43 @@ ERROR='\033[0;31m'   # Red for errors
 BOLD='\033[1m'       # Bold text
 NC='\033[0m'         # No Color
 
+# Parse out the arguments
+AUTO_ACCEPT=0
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -y|--yes)
+            AUTO_ACCEPT=1
+            shift # past argument
+            ;;
+        -t|--browsertype)
+            if [[ $# -lt 2 || "$2" == -* ]]; then
+                echo -e "${ERROR}Error: --browsertype requires 'chromium' or 'firefox'."
+                exit 1
+            fi
+            BROWSER_TYPE="$2"
+            shift # past argument
+            shift # past value
+            ;;
+        -h|--help)
+            echo -e "${INFO}Usage: $0 [-y] [-t chromium|firefox] [flatpak-browser-id]"
+            exit 0
+            ;;
+        -*|--*)
+            echo "Unknown option $1"
+            exit 1
+            ;;
+        *)
+            if [[ -v FLATPAK_ID ]]; then
+                echo -e "${ERROR}Error: only 1 browser id may be passed."
+                exit 1
+            fi
+            # Capture a flatpak id, if passed
+            FLATPAK_ID="$1"
+            shift # past value
+            ;;
+    esac
+done
+
 echo "This script will help you set up 1Password in a Flatpak browser."
 echo -e "${WARN}Note: It will make it possible for any Flatpak application to integrate, not just some. Consider if you find this worth the risk.${NC}"
 echo
@@ -92,21 +129,29 @@ list_flatpak_browsers "${FIREFOX_BROWSER_ID_LIST[@]}"
 
 echo
 
-echo -n "Enter the name of your browser's Flatpak application ID (e.g. com.google.Chrome): "
-read -r FLATPAK_ID
-if ! echo "$PACKAGE_LIST" | grep -q "$FLATPAK_ID"; then
+if ! [[ -v FLATPAK_ID ]]; then
+    echo -n "Enter the name of your browser's Flatpak application ID (e.g. com.google.Chrome): "
+    read -r FLATPAK_ID
+fi
+if ! echo "$PACKAGE_LIST" | grep -Fxq -- "$FLATPAK_ID"; then
     echo -e "${ERROR}ERROR: Could not find the specified browser${NC}"
     exit 1
 fi
-if [[ " ${FIREFOX_BROWSER_ID_LIST[*]} " =~ [[:space:]]${FLATPAK_ID}[[:space:]] ]]; then
-    BROWSER_TYPE="firefox"
-elif [[ " ${CHROMIUM_BROWSER_ID_LIST[*]} " =~ [[:space:]]${FLATPAK_ID}[[:space:]] ]]; then
-    BROWSER_TYPE="chromium"
-else
-    echo "Could not determine browser type. Is your browser based on Chromium or Firefox?"
-    echo -n "Enter 'chromium' or 'firefox': "
-    read -r BROWSER_TYPE
+
+# Determine the browser id if possible and not set
+if ! [[ -v BROWSER_TYPE ]]; then
+    if [[ " ${FIREFOX_BROWSER_ID_LIST[*]} " =~ [[:space:]]${FLATPAK_ID}[[:space:]] ]]; then
+        BROWSER_TYPE="firefox"
+    elif [[ " ${CHROMIUM_BROWSER_ID_LIST[*]} " =~ [[:space:]]${FLATPAK_ID}[[:space:]] ]]; then
+        BROWSER_TYPE="chromium"
+    else
+        echo "Could not determine browser type. Is your browser based on Chromium or Firefox?"
+        echo -n "Enter 'chromium' or 'firefox': "
+        read -r BROWSER_TYPE
+    fi
 fi
+
+# Validate the browser id is known
 if [[ "$BROWSER_TYPE" != "chromium" ]] && [[ "$BROWSER_TYPE" != "firefox" ]]; then
     echo -e "${ERROR}ERROR: Invalid browser type \"$BROWSER_TYPE\"; expected either chromium or firefox${NC}"
     exit 1
@@ -214,8 +259,14 @@ elif [[ "$BROWSER_TYPE" = "firefox" ]]; then
     # if the file doesn't exist or the contents are wrong, then ask if it should be created
     elif ! is_native_messaging_host_correct "$GLOBAL_WRAPPER_PATH" "$ALLOWED_EXTENSIONS_FIREFOX" "$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR" "true"; then
         echo "Some browsers, like Floorp and Zen, need the file in ~/.mozilla instead of in their own sandbox. This requires replacing the existing file $HOME/.mozilla/native-messaging-hosts/com.1password.1password.json with a custom one. Then, to prevent 1Password overwriting it, the file needs to be marked as read-only using chattr +i on it."
-        echo -n "Do you want to continue? This will require sudo privileges. (Y/n) "
-        read -r CONTINUE
+
+        if [[ "$AUTO_ACCEPT" == "0" ]]; then
+            echo -n "Do you want to continue? This will require sudo privileges. (Y/n) "
+            read -r CONTINUE
+        else
+            CONTINUE="Y"
+        fi
+
         if [[ "$CONTINUE" = "N" ]] || [[ "$CONTINUE" = "n" ]]; then
             echo -e "${INFO}Skipping${NC}"
         else
