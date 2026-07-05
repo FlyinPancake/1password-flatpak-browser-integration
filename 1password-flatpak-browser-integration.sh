@@ -118,15 +118,34 @@ echo
 echo -e "${INFO}Giving your browser permission to run programs outside the sandbox${NC}"
 flatpak override --user --talk-name=org.freedesktop.Flatpak "$FLATPAK_ID"
 
+# Locating the 1Password-BrowserSupport binary (some packages install it outside /opt/1Password)
+BROWSER_SUPPORT_CANDIDATES=(
+    "/opt/1Password/1Password-BrowserSupport"
+    "/usr/share/1password/1Password-BrowserSupport"
+    "/usr/libexec/1Password-BrowserSupport"
+    "/usr/lib/1Password/1Password-BrowserSupport"
+)
+for CANDIDATE in "${BROWSER_SUPPORT_CANDIDATES[@]}"; do
+    if [[ -x "$CANDIDATE" ]]; then
+        BROWSER_SUPPORT_PATH="$CANDIDATE"
+        break
+    fi
+done
+if [[ ! -v BROWSER_SUPPORT_PATH ]]; then
+    echo -e "${ERROR}ERROR: Could not find the 1Password-BrowserSupport binary. Is the 1Password desktop app installed?${NC}"
+    exit 1
+fi
+echo -e "${INFO}Found 1Password-BrowserSupport at $BROWSER_SUPPORT_PATH${NC}"
+
 # Creating a wrapper script for 1Password in the browser's directory
 echo -e "${INFO}Creating a wrapper script for 1Password${NC}"
 mkdir -p "$HOME/.var/app/$FLATPAK_ID/data/bin"
 cat <<EOF >"$HOME/.var/app/$FLATPAK_ID/data/bin/1password-wrapper.sh"
 #!/bin/bash
 if [ "\${container-}" = flatpak ]; then
-    flatpak-spawn --host /opt/1Password/1Password-BrowserSupport "\$@"
+    flatpak-spawn --host $BROWSER_SUPPORT_PATH "\$@"
 else
-    exec /opt/1Password/1Password-BrowserSupport "\$@"
+    exec $BROWSER_SUPPORT_PATH "\$@"
 fi
 EOF
 chmod +x "$HOME/.var/app/$FLATPAK_ID/data/bin/1password-wrapper.sh"
