@@ -174,7 +174,7 @@ elif [[ "$BROWSER_TYPE" = "firefox" ]]; then
     done
 
     # If it wasn't found, we might need to create .mozilla/native-messaging-hosts because Firefox now places profiles in XDG_CONFIG_HOME instead of .mozilla/firefox
-    if [[ -z "$NATIVE_MESSAGING_HOSTS_DIR" ]]; then
+    if [[ ! -v NATIVE_MESSAGING_HOSTS_DIR ]] || [[ -z "$NATIVE_MESSAGING_HOSTS_DIR" ]]; then
         NATIVE_MESSAGING_HOSTS_DIR="$HOME/.var/app/$FLATPAK_ID/.mozilla/native-messaging-hosts"
         mkdir -p "$NATIVE_MESSAGING_HOSTS_DIR"
     fi
