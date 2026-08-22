@@ -169,6 +169,7 @@ BROWSER_SUPPORT_CANDIDATES=(
     "/usr/share/1password/1Password-BrowserSupport"
     "/usr/libexec/1Password-BrowserSupport"
     "/usr/lib/1Password/1Password-BrowserSupport"
+    "/home/linuxbrew/.linuxbrew/bin/1Password-BrowserSupport"
 )
 for CANDIDATE in "${BROWSER_SUPPORT_CANDIDATES[@]}"; do
     if [[ -x "$CANDIDATE" ]]; then
@@ -306,6 +307,12 @@ elif [[ "$BROWSER_TYPE" = "firefox" ]]; then
             sudo chattr +i "$GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json" # Prevent 1Password from overwriting the file
         fi
     else
+        # The JSON only references the wrapper by path, so it can be "correct" while the
+        # wrapper itself still points at an old 1Password install. Keep them in sync.
+        if ! cmp -s "$WRAPPER_PATH" "$GLOBAL_WRAPPER_PATH"; then
+            echo -e "${INFO}Updating stale wrapper at $GLOBAL_WRAPPER_PATH${NC}"
+            cp "$WRAPPER_PATH" "$GLOBAL_WRAPPER_PATH"
+        fi
         echo -e "${INFO}Already added to $GLOBAL_NATIVE_MESSAGING_HOSTS_DIR/com.1password.1password.json${NC}"
     fi
 fi
